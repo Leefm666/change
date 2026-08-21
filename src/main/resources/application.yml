@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: opengauss-migration
+  datasource:
+    driver-class-name: org.opengauss.Driver
+    # 默认值对齐项目根 docker-compose.yml 里暴露的端口和 migration_test 用户,方便本地直接跑。
+    # 密码不给默认值,必须通过环境变量传入。
+    url: ${OG_DATASOURCE_URL:jdbc:opengauss://127.0.0.1:15432/postgres}
+    username: ${OG_DATASOURCE_USERNAME:migration_test}
+    password: ${OG_DATASOURCE_PASSWORD:}
+
+# demo.settle_order 迁移的灰度开关:enabled=false 时全部走旧存储过程(最安全的默认值)。
+# 修改后需要重启应用才生效,不支持运行时热更新。
+migration:
+  settle-order:
+    enabled: false
+    rollout-percentage: 0

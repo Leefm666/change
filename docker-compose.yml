@@ -1,0 +1,28 @@
+services:
+  opengauss:
+    image: opengauss/opengauss:5.0.0
+    container_name: og-migration-demo
+    privileged: true
+    environment:
+      GS_PASSWORD: ${OG_PASSWORD:?请设置环境变量 OG_PASSWORD,不要在此文件里硬编码密码}
+      # entrypoint 默认把 GS_DB 设成 GS_USER(即 "opengauss"),会新建一个叫 opengauss 的库并把
+      # init 脚本跑在那里面,而不是 postgres 库。固定成 postgres,保证 demo schema 建在
+      # JDBC 测试连接的同一个库(jdbc:opengauss://.../postgres)。
+      GS_DB: postgres
+    ports:
+      - "15432:5432"
+    volumes:
+      - og-migration-data:/var/lib/opengauss/data
+      # openGauss 官方镜像只在数据目录首次初始化(空卷)时执行 /docker-entrypoint-initdb.d/ 下的脚本,
+      # 按文件名排序执行。这样重建卷(docker compose down -v && up -d)后 demo schema/存储过程/
+      # migration_test 用户会自动重新建好,不需要再手动 docker exec 补录。
+      - ./db/legacy-procedures/demo.order_settlement.sql:/docker-entrypoint-initdb.d/01-demo-schema-and-procedure.sql:ro
+      - ./db/init/02-create-test-user.sh:/docker-entrypoint-initdb.d/02-create-test-user.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "LD_LIBRARY_PATH=/usr/local/opengauss/lib /usr/local/opengauss/bin/gsql -h 127.0.0.1 -p 5432 -U opengauss -W \"$$GS_PASSWORD\" -d postgres -c 'select 1;' >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  og-migration-data:
