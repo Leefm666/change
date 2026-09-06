@@ -15,3 +15,7 @@ migration:
   settle-order:
     enabled: false
     rollout-percentage: 0
+  # hr.hr_payroll 迁移的灰度开关,含义同上。
+  hr-payroll:
+    enabled: false
+    rollout-percentage: 0
